@@ -10,7 +10,7 @@ BEGIN {
 }
 
 my $csv = Text::CSV->new({'binary'=> 1, eol => "\r\n"});
-my $s = Text::Parts->new(file => "t/data/test.csv", csv => $csv, eol => "\r\n");
+my $s = Text::Parts->new(file => "t/data/test.csv", parser => $csv, eol => "\r\n");
 my @split = $s->split(num => 3);
 my @data;
 my $n = 0;
@@ -18,7 +18,7 @@ for (my $i = 0; $i < @split; $i++) {
   my $f = $split[$i];
   ok ! $f->eof, 'not eof';
   $data[$i] ||= [];
-  while (my $cols = $f->getline_csv) {
+  while (my $cols = $f->getline_parser) {
     push @{$data[$i]}, $cols;
   }
   ok $f->eof, 'eof';

@@ -9,6 +9,7 @@ sub new {
   my ($class, %args) = @_;
   $args{eol} ||= $/;
   $args{file} = File::Spec->rel2abs($args{file})  if $args{file};
+  $args{parser_method} ||= 'getline';
   bless \%args, $class;
 }
 
@@ -22,6 +23,18 @@ sub file {
   my $self = shift;
   $self->{file} = File::Spec->rel2abs(shift) if @_;
   $self->{file};
+}
+
+sub parser {
+  my $self = shift;
+  $self->{parser} = shift if @_;
+  $self->{parser};
+}
+
+sub parser_method {
+  my $self = shift;
+  $self->{parser_method} = shift if @_;
+  $self->{parser_method};
 }
 
 sub split {
@@ -39,14 +52,15 @@ sub split {
   my $start = 0;
   seek $fh, 0, 0;
   my $total;
+  my $getline_method = $self->{parser} ? '_getline_parser' : '_getline';
   while ($num-- > 0) {
     $chunk_size = $file_size - $start if $start + $chunk_size > $file_size;
     last unless $chunk_size;
 
     seek $fh, $chunk_size - $delimiter_size, 1;
-    $self->_getline($fh);
+    $self->$getline_method($fh);
     my $end = tell($fh);
-    push @parts, Text::Parts::Part->new(file => $file, start => $start, end => $end - 1, eol => $self->{eol}, csv => $self->{csv});
+    push @parts, Text::Parts::Part->new(%$self, start => $start, end => $end - 1);
     $start = $end;
     if (($num > 1) and $chunk_size > $delimiter_size + 1) {
       $chunk_size = int(($file_size - $end) / $num);
@@ -59,11 +73,12 @@ sub split {
 
 sub _getline {
   my ($self, $fh) = @_;
-  if (my $csv = $self->{csv}) {
-    $csv->getline($fh);
-  } else {
-    <$fh>;
-  }
+  <$fh>;
+}
+
+sub _getline_parser {
+  my ($self, $fh) = @_;
+  $self->{parser}->getline($fh);
 }
 
 package
@@ -102,14 +117,15 @@ sub getline {
   return <$fh>;
 }
 
-sub getline_csv {
+sub getline_parser {
   my ($self) = @_;
   return () if $self->eof;
 
-  if ($self->{csv}) {
-    $self->{csv}->getline($self->{fh});
+  if ($self->{parser}) {
+    my $method = $self->{parser_method};
+    $self->{parser}->$method($self->{fh});
   } else {
-    Carp::croak("no csv object is given.");
+    Carp::croak("no parser object is given.");
   }
 }
 
@@ -152,11 +168,11 @@ If you want to split CSV file:
     use Text::CSV_XS; # don't work with Text::CSV_PP
     
     my $csv = Text::CSV_XS->new();
-    my $splitter = Text::Parts->new(file => $file, csv => $csv);
+    my $splitter = Text::Parts->new(file => $file, parser => $csv);
     my (@parts) = $splitter->split(num => 4);
 
     foreach my $part (@parts) {
-       while(my $col = $part->getline_csv) { # getline_csv returns parsed result
+       while(my $col = $part->getline_parser) { # getline_parser returns parsed result
           print join "\t", @$col;
           # ...
        }
@@ -198,12 +214,24 @@ So that:
 =head2 new
 
  $s = Text::Parts->new(file => $filename);
+ $s = Text::Parts->new(file => $filename, parser => Text::CSV_XS->new({binary => 1}));
 
-Constructoer.
+Constructoer. can take following optins:
 
-If you want to split CSV file whose column is include new lines, you had better give Text:CSV_XS object.
+=head3 file
 
- $s = Text::Parts->new(file => $filename, csv => Text::CSV_XS->new({binary => 1}));
+target file which you want to split.
+
+=head3 parser
+
+Pass parser object(like Text::CSV_XS).
+The object must have method which take filehandle.
+method name is C<getline> as default.
+If the object has different name of method, pass the name to parser_method.
+
+=head3 parser_method
+
+name of parser's method. default is C<getline>.
 
 =head2 file
 
@@ -211,6 +239,20 @@ If you want to split CSV file whose column is include new lines, you had better 
  $s->file($filename);
 
 get/set target file.
+
+=head2 parser
+
+ my $parser = $s->parser;
+ $s->parser($parser);
+
+get/set paresr.
+
+=head2 parser_method
+
+ my $method = $s->parser_method;
+ $s->parser_method($method);
+
+get/set paresr method.
 
 =head2 split
 
@@ -239,9 +281,11 @@ return 1 line.
 
 return 1 line.
 
-=head2 getline_csv
+=head2 getline_parser
 
- my $columns = $part->getline_csv;
+ my $parsed = $part->getline_parser;
+
+returns parsed result.
 
 =head2 eof
 
