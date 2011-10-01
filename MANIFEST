@@ -1,0 +1,14 @@
+Changes
+MANIFEST
+Makefile.PL
+README
+lib/Text/Parts.pm
+t/00-load.t
+t/10-split.t
+t/manifest.t
+t/pod-coverage.t
+t/pod.t
+t/data/1.txt
+t/data/2.txt
+t/data/3.txt
+t/data/4.txt
