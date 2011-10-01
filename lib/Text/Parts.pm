@@ -39,7 +39,10 @@ sub parser_method {
 
 sub split {
   my ($self, %opt) = @_;
-  my $num = $opt{num};
+  Carp::croak("num or size is required.") if not $opt{num} and not $opt{size};
+
+  my $num = $opt{num} ? $opt{num} : int((-s $self->file) / $opt{size});
+
   Carp::croak('num must be grater than 1.') if $num <= 1;
 
   my $file = $self->file;
@@ -151,8 +154,10 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-    use Text::Parts;
+If you want to split Text file to specified parts:
 
+    use Text::Parts;
+    
     my $splitter = Text::Parts->new(file => $file);
     my (@parts) = $splitter->split(num => 4);
 
@@ -162,6 +167,14 @@ our $VERSION = '0.01';
        }
     }
 
+If you want to split Text file by specified size:
+
+    use Text::Parts;
+    
+    my $splitter = Text::Parts->new(file => $file);
+    my (@parts) = $splitter->split(size => 10);
+    # same as the previous example
+
 If you want to split CSV file:
 
     use Text::Parts;
@@ -170,7 +183,7 @@ If you want to split CSV file:
     my $csv = Text::CSV_XS->new();
     my $splitter = Text::Parts->new(file => $file, parser => $csv);
     my (@parts) = $splitter->split(num => 4);
-
+    
     foreach my $part (@parts) {
        while(my $col = $part->getline_parser) { # getline_parser returns parsed result
           print join "\t", @$col;
@@ -217,6 +230,14 @@ So that:
  $s = Text::Parts->new(file => $filename, parser => Text::CSV_XS->new({binary => 1}));
 
 Constructoer. can take following optins:
+
+=head2 num
+
+number how many you want to split.
+
+=head2 size
+
+file size how much you want to split.
 
 =head3 file
 
