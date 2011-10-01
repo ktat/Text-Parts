@@ -31,35 +31,57 @@ sub split {
 
   my $file = $self->file;
   my $file_size = -s $file;
-  my $chunk_size = int $file_size / 4;
+  my $chunk_size = int $file_size / $num;
   my @parts;
   open my $fh, '<', $file or Carp::croak "$!: $file";
   local $/ = $self->{eol};
+  my $delimiter_size = length($/);
   my $start = 0;
-  seek $fh, $start, 0;
+  seek $fh, 0, 0;
   my $total;
-  foreach my $i (0 .. $num -1) {
+  while ($num-- > 0) {
     $chunk_size = $file_size - $start if $start + $chunk_size > $file_size;
     last unless $chunk_size;
 
-    seek $fh, $chunk_size - 1, 1;
-    my $line = <$fh>;
-    my $end = tell($fh) - 1;
-    push @parts, Text::Parts::Part->new(file => $file, start => $start, end => $end, eol => $self->{eol});
-    if (($num - $i > 1) and $chunk_size > 2 and (my $over = ($end - $start - $chunk_size)) > 0) {
-      $chunk_size = int(($file_size - $end) / ($num - $i - 1));
-      $chunk_size = 2 if $chunk_size < 3;
+    seek $fh, $chunk_size - $delimiter_size, 1;
+    $self->_getline($fh);
+    my $end = tell($fh);
+    push @parts, Text::Parts::Part->new(file => $file, start => $start, end => $end - 1, eol => $self->{eol}, csv => $self->{csv});
+    $start = $end;
+    if (($num > 1) and $chunk_size > $delimiter_size + 1) {
+      $chunk_size = int(($file_size - $end) / $num);
+      $chunk_size = $delimiter_size + 1 if $chunk_size < $delimiter_size + 1;
     }
-    $start = $end + 1;
   }
   close $fh;
   return @parts;
+}
+
+sub _getline {
+  my ($self, $fh) = @_;
+  if (my $csv = $self->{csv}) {
+    $csv->getline($fh);
+  } else {
+    <$fh>;
+  }
 }
 
 package
   Text::Parts::Part;
 
 use overload '<>' => \&getline;
+# sub {
+#   my $self = shift;
+#   if (wantarray) {
+#     my @lines;
+#     until ($self->eof) {
+#       push @lines, $self->getline;
+#     }
+#     return @lines;
+#   } else {
+#     return $self->getline;
+#   }
+# };
 
 sub new {
   my ($class, %args) = @_;
@@ -68,24 +90,34 @@ sub new {
   bless {
          %args,
          fh    => $fh,
-         next  => $args{start},
         }, $class;
 }
 
 sub getline {
   my ($self) = @_;
-  return () if $self->{next} > $self->{end};
+  return () if $self->eof;
 
   local $/ = $self->{eol};
   my $fh = $self->{fh};
-  my $line = <$fh>;
-  $self->{next} = tell $fh;
-  return $line;
+  return <$fh>;
 }
+
+sub getline_csv {
+  my ($self) = @_;
+  return () if $self->eof;
+
+  if ($self->{csv}) {
+    $self->{csv}->getline($self->{fh});
+  } else {
+    Carp::croak("no csv object is given.");
+  }
+}
+
+sub fh { $_[0]->{fh} }
 
 sub eof {
   my ($self) = @_;
-  $self->{end} <= $self->{next} ? 1 : 0;
+  $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
 =head1 NAME
@@ -110,6 +142,22 @@ our $VERSION = '0.01';
 
     foreach my $part (@parts) {
        while(my $l = $part->getline) { # or <$part>
+          # ...
+       }
+    }
+
+If you want to split CSV file:
+
+    use Text::Parts;
+    use Text::CSV_XS; # don't work with Text::CSV_PP
+    
+    my $csv = Text::CSV_XS->new();
+    my $splitter = Text::Parts->new(file => $file, csv => $csv);
+    my (@parts) = $splitter->split(num => 4);
+
+    foreach my $part (@parts) {
+       while(my $col = $part->getline_csv) { # getline_csv returns parsed result
+          print join "\t", @$col;
           # ...
        }
     }
@@ -153,6 +201,10 @@ So that:
 
 Constructoer.
 
+If you want to split CSV file whose column is include new lines, you had better give Text:CSV_XS object.
+
+ $s = Text::Parts->new(file => $filename, csv => Text::CSV_XS->new({binary => 1}));
+
 =head2 file
 
  my $file = $s->file;
@@ -179,9 +231,17 @@ get/set end of line string. default value is $/.
 
  my $line = $part->getline;
 
+return 1 line.
+
 =head2 <$part>
 
  my $line = <$part>;
+
+return 1 line.
+
+=head2 getline_csv
+
+ my $columns = $part->getline_csv;
 
 =head2 eof
 
@@ -204,7 +264,6 @@ automatically be notified of progress on your bug as I make changes.
 You can find documentation for this module with the perldoc command.
 
     perldoc Text::Parts
-
 
 You can also look for information at:
 

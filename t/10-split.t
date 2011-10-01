@@ -36,7 +36,7 @@ my %test = (
 foreach my $n (sort {$a <=> $b} keys %test) {
   my $split = shift @{$test{$n}};
   my $s = Text::Parts->new(file => "t/data/$n.txt");
-  my @split = $s->split(num => 4);
+  my @split = $s->split(num => $split);
   my @data;
   for (my $i = 0; $i < @split; $i++) {
     my $f = $split[$i];
@@ -55,7 +55,7 @@ foreach my $n (sort {$a <=> $b} keys %test) {
 foreach my $n (sort {$a <=> $b} keys %test) {
   my $split = shift @{$test{$n}};
   my $s = Text::Parts->new(file => "t/data/$n.txt");
-  my @split = $s->split(num => 4);
+  my @split = $s->split(num => $split);
   my @data;
   for (my $i = 0; $i < @split; $i++) {
     my $f = $split[$i];
@@ -70,5 +70,17 @@ foreach my $n (sort {$a <=> $b} keys %test) {
   is_deeply \@data, $test{$n}, "$n.txt";
   unshift @{$test{$n}}, $split;
 }
+
+# my $s = Text::Parts->new();
+# $s->file("t/data/1.txt");
+# my @split = $s->split(num => 4);
+# my $fh = $split[0];
+# my @content = <$fh>;
+# is $content[0], "1\n";
+# is $content[1], "2\n";
+# local $/;
+# $fh = $split[1];
+# my $c = <$fh>;
+# is $c, "2\n3\n";
 
 done_testing;
