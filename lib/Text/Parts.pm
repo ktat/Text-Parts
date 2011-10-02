@@ -106,13 +106,13 @@ sub _move_line_start {
   my $size = $current - 1024 < 0 ? int($current / 2) : 1024;
   my $eol = $self->eol;
   my $check = 0;
-  while ($current - $size > 0) {
+  while ($end - $current + $size > 0 and $current - $size > 0) {
     seek $fh, $current - $size, 0;
     read $fh, my $buffer, $end - $current + $size;
     my @buffer = split /$eol/, $buffer;
     if (@buffer > 1) {
       $check = 1;
-      $current = $end - (length($buffer[-1]) + length($self->eol));
+      $current = $end - (length($buffer[-1]) + length($eol));
       last;
     } else {
       $size += $size;
