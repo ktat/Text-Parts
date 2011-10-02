@@ -33,42 +33,44 @@ my %test = (
                    ],
              );
 
-foreach my $n (sort {$a <=> $b} keys %test) {
-  my $split = shift @{$test{$n}};
-  my $s = Text::Parts->new(file => "t/data/$n.txt");
-  my @split = $s->split(num => $split);
-  my @data;
-  for (my $i = 0; $i < @split; $i++) {
-    my $f = $split[$i];
-    ok ! $f->eof, 'not eof';
-    $data[$i] ||= [];
-    while (my $l = $f->getline) {
-      chomp $l;
-      push @{$data[$i]}, $l,
+foreach my $check (0, 1) {
+  foreach my $n (sort {$a <=> $b} keys %test) {
+    my $split = shift @{$test{$n}};
+    my $s = Text::Parts->new(file => "t/data/$n.txt", check_line_start => $check);
+    my @split = $s->split(num => $split);
+    my @data;
+    for (my $i = 0; $i < @split; $i++) {
+      my $f = $split[$i];
+      ok ! $f->eof, 'not eof';
+      $data[$i] ||= [];
+      while (my $l = $f->getline) {
+        chomp $l;
+        push @{$data[$i]}, $l,
+      }
+      ok $f->eof, 'eof';
     }
-    ok $f->eof, 'eof';
+    is_deeply \@data, $test{$n}, "$n.txt";
+    unshift @{$test{$n}}, $split;
   }
-  is_deeply \@data, $test{$n}, "$n.txt";
-  unshift @{$test{$n}}, $split;
-}
 
-foreach my $n (sort {$a <=> $b} keys %test) {
-  my $split = shift @{$test{$n}};
-  my $s = Text::Parts->new(file => "t/data/$n.txt");
-  my @split = $s->split(num => $split);
-  my @data;
-  for (my $i = 0; $i < @split; $i++) {
-    my $f = $split[$i];
-    $data[$i] ||= [];
-    ok ! $f->eof, 'not eof';
-    while (<$f>) {
-      chomp;
-      push @{$data[$i]}, $_,
+  foreach my $n (sort {$a <=> $b} keys %test) {
+    my $split = shift @{$test{$n}};
+    my $s = Text::Parts->new(file => "t/data/$n.txt", check_line_start => $check);
+    my @split = $s->split(num => $split);
+    my @data;
+    for (my $i = 0; $i < @split; $i++) {
+      my $f = $split[$i];
+      $data[$i] ||= [];
+      ok ! $f->eof, 'not eof';
+      while (<$f>) {
+        chomp;
+        push @{$data[$i]}, $_,
+      }
+      ok $f->eof, 'eof';
     }
-    ok $f->eof, 'eof';
+    is_deeply \@data, $test{$n}, "$n.txt";
+    unshift @{$test{$n}}, $split;
   }
-  is_deeply \@data, $test{$n}, "$n.txt";
-  unshift @{$test{$n}}, $split;
 }
 
 # my $s = Text::Parts->new();

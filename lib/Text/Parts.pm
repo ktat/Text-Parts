@@ -56,6 +56,7 @@ sub split {
   seek $fh, 0, 0;
   my $total;
   my $getline_method = $self->{parser} ? '_getline_parser' : '_getline';
+  $getline_method .= '_restrict' if $self->{check_line_start};
   while ($num-- > 0) {
     $chunk_size = $file_size - $start if $start + $chunk_size > $file_size;
     last unless $chunk_size;
@@ -81,7 +82,43 @@ sub _getline {
 
 sub _getline_parser {
   my ($self, $fh) = @_;
-  $self->{parser}->getline($fh);
+  my $method = $self->{parser_method};
+  $self->{parser}->$method($fh);
+}
+
+sub _getline_restrict {
+  my ($self, $fh) = @_;
+  $self->_move_line_start($fh);
+  $self->_getline($fh);
+}
+
+sub _getline_parser_restrict {
+  my ($self, $fh) = @_;
+  $self->_move_line_start($fh);
+  $self->_getline_parser($fh);
+}
+
+sub _move_line_start {
+  my ($self, $fh) = @_;
+  my $current = tell $fh;
+  <$fh>;
+  my $end     = tell $fh;
+  my $size = $current - 1024 < 0 ? int($current / 2) : 1024;
+  my $eol = $self->eol;
+  my $check = 0;
+  while ($current - $size > 0) {
+    seek $fh, $current - $size, 0;
+    read $fh, my $buffer, $end - $current + $size;
+    my @buffer = split /$eol/, $buffer;
+    if (@buffer > 1) {
+      $check = 1;
+      $current = $end - (length($buffer[-1]) + length($self->eol));
+      last;
+    } else {
+      $size += $size;
+    }
+  }
+  seek $fh, ($check ? $current : 0), 0;
 }
 
 package
@@ -253,6 +290,13 @@ If the object has different name of method, pass the name to parser_method.
 =head3 parser_method
 
 name of parser's method. default is C<getline>.
+
+=head3 check_line_start
+
+If this options is true, check line start and move to this position before C<< <$fh> >> or parser's C<getline>.
+It may be useful when parser's C<getline> method doesn't work correctly when parsing wrong format.
+
+default value is 0.
 
 =head2 file
 
