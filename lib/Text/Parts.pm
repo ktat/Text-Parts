@@ -178,7 +178,7 @@ sub eof {
 
 =head1 NAME
 
-Text::Parts - split text file to some parts
+Text::Parts - split text file to some parts(from one line start to another/same line end)
 
 =head1 VERSION
 
@@ -188,10 +188,9 @@ Version 0.01
 
 our $VERSION = '0.01';
 
-
 =head1 SYNOPSIS
 
-If you want to split Text file to specified parts:
+If you want to split Text file to some number of parts:
 
     use Text::Parts;
     
@@ -204,18 +203,18 @@ If you want to split Text file to specified parts:
        }
     }
 
-If you want to split Text file by specified size:
+If you want to split Text file by about specified size:
 
     use Text::Parts;
     
     my $splitter = Text::Parts->new(file => $file);
-    my (@parts) = $splitter->split(size => 10);
+    my (@parts) = $splitter->split(size => 10); # size of part will be more that 10.
     # same as the previous example
 
 If you want to split CSV file:
 
     use Text::Parts;
-    use Text::CSV_XS; # don't work with Text::CSV_PP
+    use Text::CSV_XS; # don't work with Text::CSV_PP if you want to use {binary => 1} option
     
     my $csv = Text::CSV_XS->new();
     my $splitter = Text::Parts->new(file => $file, parser => $csv);
@@ -231,7 +230,7 @@ If you want to split CSV file:
 =head1 DESCRIPTION
 
 This moudle splits file by specified number of part.
-Each part is started from line start to line end.
+The range of each part is from one line start to another/same line end.
 For example, file content is the following:
 
  1111
@@ -266,7 +265,7 @@ So that:
  $s = Text::Parts->new(file => $filename);
  $s = Text::Parts->new(file => $filename, parser => Text::CSV_XS->new({binary => 1}));
 
-Constructoer. can take following optins:
+Constructor. It can take following optins:
 
 =head2 num
 
@@ -275,6 +274,8 @@ number how many you want to split.
 =head2 size
 
 file size how much you want to split.
+This value is used for calucurating C<num>.
+If file size is 100 and this value is 25, C<num> is 4.
 
 =head3 file
 
@@ -282,10 +283,9 @@ target file which you want to split.
 
 =head3 parser
 
-Pass parser object(like Text::CSV_XS).
-The object must have method which take filehandle.
-method name is C<getline> as default.
-If the object has different name of method, pass the name to parser_method.
+Pass parser object(like Text::CSV_XS->new()).
+The object must have method which takes filehandle and whose name is C<getline> as default.
+If the object's method is different name, pass the name to C<parser_method> option.
 
 =head3 parser_method
 
@@ -293,8 +293,8 @@ name of parser's method. default is C<getline>.
 
 =head3 check_line_start
 
-If this options is true, check line start and move to this position before C<< <$fh> >> or parser's C<getline>.
-It may be useful when parser's C<getline> method doesn't work correctly when parsing wrong format.
+If this options is true, check line start and move to this position before C<< <$fh> >> or parser's C<getline>/C<parser_method>.
+It may be useful when parser's C<getline>/C<parser_method> method doesn't work correctly when parsing wrong format.
 
 default value is 0.
 
@@ -307,10 +307,10 @@ get/set target file.
 
 =head2 parser
 
- my $parser = $s->parser;
- $s->parser($parser);
+ my $parser_object = $s->parser;
+ $s->parser($parser_object);
 
-get/set paresr.
+get/set paresr object.
 
 =head2 parser_method
 
@@ -322,8 +322,13 @@ get/set paresr method.
 =head2 split
 
  my @parts = $s->split(num => $num);
+ my @parts = $s->split(size => $size);
 
-Try to split target file to $num of parts. The returned value is array of Text::Parts::Part object.
+Try to split target file to C<$num> of parts. The returned value is array of Text::Parts::Part object.
+If you pass C<< size => bytes >>, calcurate C<$num> from file size / C<$size>.
+
+This returns array of Text::Parts::Part object.
+See L</"Text::Parts::Part METHODS">.
 
 =head2 eol
 
@@ -333,6 +338,8 @@ Try to split target file to $num of parts. The returned value is array of Text::
 get/set end of line string. default value is $/.
 
 =head1 Text::Parts::Part METHODS
+
+Text::Parts::Part objects are returned by C<split> method.
 
 =head2 getline
 
@@ -346,7 +353,7 @@ return 1 line.
 
 return 1 line.
 
-=head2 getline_parser
+=head2 getline_
 
  my $parsed = $part->getline_parser;
 
@@ -356,7 +363,7 @@ returns parsed result.
 
  $part->eof;
 
-If end of parts, return true.
+If current position is the end of parts, return true.
 
 =head1 AUTHOR
 

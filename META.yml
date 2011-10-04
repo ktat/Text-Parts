@@ -1,5 +1,5 @@
 ---
-abstract: 'split text file to some parts'
+abstract: 'split text file to some parts(from one line start to another/same line end)'
 author:
   - 'Ktat, C<< <ktat at cpan.org> >>'
   - 'Ktat <ktat@cpan.org>'
