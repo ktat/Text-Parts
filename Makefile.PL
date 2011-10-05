@@ -10,6 +10,14 @@ build_requires
     'File::Spec' => 0,
     ;
 
+resources
+  bugtracker => 'https://github.com/ktat/Text-Parts/issues',
+  repository => {
+      url  => 'git@github.com:ktat/Text-Parts.git',
+      web  => 'https://github.com/ktat/Text-Parts',
+      type => 'git',
+  };
+
 auto_install;
 
 WriteAll;

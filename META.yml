@@ -21,5 +21,10 @@ no_index:
     - inc
     - t
 resources:
+  bugtracker: https://github.com/ktat/Text-Parts/issues
   license: http://dev.perl.org/licenses/
-version: 0.01
+  repository:
+    type: git
+    url: git@github.com:ktat/Text-Parts.git
+    web: https://github.com/ktat/Text-Parts
+version: 0.02

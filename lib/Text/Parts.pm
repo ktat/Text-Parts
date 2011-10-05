@@ -186,7 +186,7 @@ Version 0.01
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -346,14 +346,11 @@ Text::Parts::Part objects are returned by C<split> method.
  my $line = $part->getline;
 
 return 1 line.
+You can use C<< <$part> >>, also.
 
-=head2 <$part>
+ my $line = <$part>
 
- my $line = <$part>;
-
-return 1 line.
-
-=head2 getline_
+=head2 getline_parser
 
  my $parsed = $part->getline_parser;
 
