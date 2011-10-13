@@ -1,5 +1,8 @@
 Revision history for Text-Parts
 
+0.03    2011/10/13 13:57:00
+        fix Makefile.PL. add test_requires.
+
 0.02    2011/10/05 09:18:00
         fix document.
 

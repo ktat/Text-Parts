@@ -2,7 +2,7 @@
 
 use Test::More;
 use strict;
-use Text::CSV;
+use Test::Requires qw/Text::CSV/;
 use warnings;
 use Data::Dumper;
 BEGIN {

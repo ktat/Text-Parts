@@ -9,6 +9,9 @@ build_requires
     'Test::More' => 0,
     'File::Spec' => 0,
     ;
+test_requires
+    'Test::Requires'  => 0,
+    ;
 
 resources
   bugtracker => 'https://github.com/ktat/Text-Parts/issues',

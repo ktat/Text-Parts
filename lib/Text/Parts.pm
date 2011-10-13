@@ -176,17 +176,11 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
+our $VERSION = '0.03';
+
 =head1 NAME
 
 Text::Parts - split text file to some parts(from one line start to another/same line end)
-
-=head1 VERSION
-
-Version 0.01
-
-=cut
-
-our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
