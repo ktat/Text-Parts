@@ -176,7 +176,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 NAME
 
@@ -220,6 +220,22 @@ If you want to split CSV file:
           # ...
        }
     }
+
+with Parallel::ForkManager:
+
+  my $splitter = Text::Parts->new(file => $file);
+  my (@parts) = $splitter->split(num => 4);
+  my $pm = new Parallel::ForkManager(4);
+  
+  foreach my $part (@parts) {
+    $pm->start and next; # do the fork
+    
+    while (my $l = $part->getline) {
+      # ...
+    }
+  }
+  
+  $pm->wait_all_children;
 
 =head1 DESCRIPTION
 

@@ -1,5 +1,9 @@
 Revision history for Text-Parts
 
+0.04    2011/10/24 13:01:00
+        fix test (failed on 32bit env)
+        add sample to synopsis.
+
 0.03    2011/10/13 13:57:00
         fix Makefile.PL. add test_requires.
 
