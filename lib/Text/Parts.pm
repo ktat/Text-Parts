@@ -176,7 +176,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 =head1 NAME
 

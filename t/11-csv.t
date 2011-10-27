@@ -2,7 +2,7 @@
 
 use Test::More;
 use strict;
-use Test::Requires qw/Text::CSV/;
+use Test::Requires qw/Text::CSV_XS/;
 use warnings;
 use Data::Dumper;
 BEGIN {
@@ -10,7 +10,7 @@ BEGIN {
 }
 
 foreach my $check (0 , 1) {
-  my $csv = Text::CSV->new({'binary'=> 1, eol => "\r\n"});
+  my $csv = Text::CSV_XS->new({'binary'=> 1, eol => "\r\n"});
   my $s = Text::Parts->new(file => "t/data/test.csv", parser => $csv, eol => "\r\n", check_line_start => $check);
   my @split = $s->split(num => 3);
   my @data;

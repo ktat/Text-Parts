@@ -1,5 +1,8 @@
 Revision history for Text-Parts
 
+0.05    2011/10/27 14:52:00
+        fix test (failed if no Text::CSV_XS)
+
 0.04    2011/10/24 13:01:00
         fix test (failed on 32bit env)
         add sample to synopsis.
