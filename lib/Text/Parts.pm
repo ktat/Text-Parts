@@ -3,7 +3,7 @@ package Text::Parts;
 use warnings;
 use strict;
 use Carp;
-use File::Spec;
+use File::Spec ();
 
 sub new {
   my ($class, %args) = @_;
@@ -37,16 +37,21 @@ sub parser_method {
   $self->{parser_method};
 }
 
+sub _size {
+  my ($self) = @_;
+  return -s $self->{file};
+}
+
 sub split {
   my ($self, %opt) = @_;
   Carp::croak("num or size is required.") if not $opt{num} and not $opt{size};
 
-  my $num = $opt{num} ? $opt{num} : int((-s $self->file) / $opt{size});
+  my $num = $opt{num} ? $opt{num} : int($self->_size / $opt{size});
 
   Carp::croak('num must be grater than 1.') if $num <= 1;
 
   my $file = $self->file;
-  my $file_size = -s $file;
+  my $file_size = $self->_size;
   my $chunk_size = int $file_size / $num;
   my @parts;
   open my $fh, '<', $file or Carp::croak "$!: $file";
@@ -73,6 +78,18 @@ sub split {
   }
   close $fh;
   return @parts;
+}
+
+sub write_files {
+  my ($self, %opt) = @_;
+  my $filename = $opt{name_format};
+  my @filename;
+  my $n = 0;
+  foreach my $part ($self->split(%opt)) {
+    push @filename, sprintf $filename, ++$n;
+    $part->write_file($filename[-1]);
+  }
+  return @filename;
 }
 
 sub _getline {
@@ -148,6 +165,22 @@ sub new {
         }, $class;
 }
 
+sub all {
+  my ($self, $buf) = @_;
+  my $buffer = '';
+  my $_buf = $buf || \$buffer;
+  seek $self->fh, $self->{start}, 0;
+  read $self->fh, $$_buf, $self->{end} - $self->{start};
+  return $buf ? () : $buffer;
+}
+
+sub write_file {
+  my ($self, $name) = @_;
+  open my $fh, '>', $name or die "cannot write $name: $!";
+  print $fh $self->all;
+  close $fh;
+}
+
 sub getline {
   my ($self) = @_;
   return () if $self->eof;
@@ -176,7 +209,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 =head1 NAME
 
@@ -202,7 +235,7 @@ If you want to split Text file by about specified size:
     use Text::Parts;
     
     my $splitter = Text::Parts->new(file => $file);
-    my (@parts) = $splitter->split(size => 10); # size of part will be more that 10.
+    my (@parts) = $splitter->split(size => 10); # size of part will be more than 10.
     # same as the previous example
 
 If you want to split CSV file:
@@ -340,12 +373,28 @@ If you pass C<< size => bytes >>, calcurate C<$num> from file size / C<$size>.
 This returns array of Text::Parts::Part object.
 See L</"Text::Parts::Part METHODS">.
 
+This method doesn't actually split file, only calcurate the start and end poition of parts.
+
 =head2 eol
 
  my $eol = $s->eol;
  $s->eol($eol);
 
 get/set end of line string. default value is $/.
+
+=head2 write_files
+
+ @filenames = $part->write_files(name_format => 'path/to/name%d.txt', num => 4);
+
+C<name_format> is the format of filename. %d is replaced by number.
+For example:
+
+ path/to/name1.txt
+ path/to/name2.txt
+ path/to/name3.txt
+ path/to/name4.txt
+
+The rest of arguments are as same as C<split>.
 
 =head1 Text::Parts::Part METHODS
 
@@ -366,11 +415,27 @@ You can use C<< <$part> >>, also.
 
 returns parsed result.
 
+=head2 all
+
+ my $all = $part->all;
+ $part->all(\$all);
+
+return all of the part.
+just C<read> from start to end position.
+
+If scalar reference is passed as argument, the content of the part is into the passed scalar.
+
 =head2 eof
 
  $part->eof;
 
 If current position is the end of parts, return true.
+
+=head2 write_file
+
+ $part->write_file($filename);
+
+Write the contents of the part to $filename.
 
 =head1 AUTHOR
 

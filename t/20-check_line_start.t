@@ -3,6 +3,10 @@
 use Test::More;
 use Text::Parts;
 use strict;
+BEGIN {
+  eval {require 5.8.0;};
+  eval "use Test::More skip_all => q{$@}" if $@;
+}
 
 my $p = Text::Parts->new();
 

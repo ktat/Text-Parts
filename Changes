@@ -1,5 +1,10 @@
 Revision history for Text-Parts
 
+0.06	2011/12/15 02:50:00
+	skip test when perl version < 5.8
+	add all and write_file method to Text::Parts::Part.
+	add write_files method to Text::Parts.
+
 0.05    2011/10/27 14:52:00
         fix test (failed if no Text::CSV_XS)
 
