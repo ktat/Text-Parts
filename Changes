@@ -1,5 +1,10 @@
 Revision history for Text-Parts
 
+0.07    2011/12/15 04:03:00
+	change write_files interface.
+	check argument(s) of write_file/write_files.
+	add document.
+
 0.06	2011/12/15 02:50:00
 	skip test when perl version < 5.8
 	add all and write_file method to Text::Parts::Part.

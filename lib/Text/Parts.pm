@@ -81,8 +81,8 @@ sub split {
 }
 
 sub write_files {
-  my ($self, %opt) = @_;
-  my $filename = $opt{name_format};
+  my ($self, $filename, %opt) = @_;
+  $filename or Carp::croak("file is needed as first argument.");
   my @filename;
   my $n = 0;
   foreach my $part ($self->split(%opt)) {
@@ -169,14 +169,15 @@ sub all {
   my ($self, $buf) = @_;
   my $buffer = '';
   my $_buf = $buf || \$buffer;
-  seek $self->fh, $self->{start}, 0;
+  seek $self->fh, $self->{start}, 0 if $self->eof;
   read $self->fh, $$_buf, $self->{end} - $self->{start};
   return $buf ? () : $buffer;
 }
 
 sub write_file {
   my ($self, $name) = @_;
-  open my $fh, '>', $name or die "cannot write $name: $!";
+  $name or Carp::croak("file is needed.");
+  open my $fh, '>', $name or Carp::croak("cannot write $name: $!");
   print $fh $self->all;
   close $fh;
 }
@@ -209,7 +210,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 =head1 NAME
 
@@ -254,6 +255,15 @@ If you want to split CSV file:
        }
     }
 
+Write parts to file:
+
+   $splitter->write_files('file%d.csv', num => 4);
+   
+   my $i = 0;
+   foreach my $part ($splitter->slit(num => 4)) {
+     $part->write_file("file" . $i++ . '.csv');
+   }
+
 with Parallel::ForkManager:
 
   my $splitter = Text::Parts->new(file => $file);
@@ -269,6 +279,9 @@ with Parallel::ForkManager:
   }
   
   $pm->wait_all_children;
+
+NOTE THAT: If the file is on the same disk, fork is no use.
+Maybe, using fork makes sense when the file is on RAID (I haven't try it).
 
 =head1 DESCRIPTION
 
@@ -384,7 +397,7 @@ get/set end of line string. default value is $/.
 
 =head2 write_files
 
- @filenames = $part->write_files(name_format => 'path/to/name%d.txt', num => 4);
+ @filenames = $part->write_files('path/to/name%d.txt', num => 4);
 
 C<name_format> is the format of filename. %d is replaced by number.
 For example:

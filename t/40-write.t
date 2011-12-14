@@ -45,7 +45,7 @@ foreach my $check (0, 1) {
       ok -f $file, 'file exists';
       is $p->all, _read_file($file), "file contents is ok";
     }
-    my @filenames = $s->write_files(name_format =>'t/tmp/xx%d.txt', num => $split);
+    my @filenames = $s->write_files('t/tmp/xx%d.txt', num => $split);
     foreach my $file (@filenames) {
       my $_file = $file;
       $_file =~s{/xx}{/x};
