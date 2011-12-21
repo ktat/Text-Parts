@@ -47,7 +47,6 @@ sub split {
   Carp::croak("num or size is required.") if not $opt{num} and not $opt{size};
 
   my $num = $opt{num} ? $opt{num} : int($self->_size / $opt{size});
-
   Carp::croak('num must be grater than 1.') if $num <= 1;
 
   my $file = $self->file;
@@ -69,7 +68,7 @@ sub split {
     seek $fh, $chunk_size - $delimiter_size, 1;
     $self->$getline_method($fh);
     my $end = tell($fh);
-    push @parts, Text::Parts::Part->new(%$self, start => $start, end => $end - 1);
+    push @parts, Text::Parts::Part->new(%$self, start => $start, end => $end - 1, no_open => $opt{no_open});
     $start = $end;
     if (($num > 1) and $chunk_size > $delimiter_size + 1) {
       $chunk_size = int(($file_size - $end) / $num);
@@ -85,9 +84,16 @@ sub write_files {
   $filename or Carp::croak("file is needed as first argument.");
   my @filename;
   my $n = 0;
-  foreach my $part ($self->split(%opt)) {
+  my @parts = $self->split(%opt, no_open => 1);
+
+  open my $fh, '<', $self->file or Carp::croak "cannot open file($!): " . $self->file;
+  seek $fh, 0, 0;
+  foreach my $part (@parts) {
+    my $buf;
+    read $fh, $buf, $part->{end} - $part->{start};
     push @filename, sprintf $filename, ++$n;
-    $part->write_file($filename[-1]);
+    open my $fh_w, '>', $filename[-1] or Carp::croak("cannot open file($!): " . $filename[-1]);
+    print $fh_w $buf;
   }
   return @filename;
 }
@@ -157,12 +163,19 @@ use overload '<>' => \&getline;
 
 sub new {
   my ($class, %args) = @_;
-  open my $fh, '<', $args{file} or Carp::croak "$!: $args{file}";
-  seek $fh, $args{start}, 0;
-  bless {
-         %args,
-         fh    => $fh,
-        }, $class;
+  my $fh;
+  my $self = bless {%args}, $class;
+  if (not $args{no_open}) {
+    $self->open_and_seek;
+  }
+  $self;
+}
+
+sub open_and_seek {
+  my ($self) = @_;
+  open my $fh, '<', $self->{file} or Carp::croak "$!: " . $self->{file};
+  seek $fh, $self->{start}, 0;
+  $self->{fh} = $fh;
 }
 
 sub all {
@@ -354,6 +367,11 @@ It may be useful when parser's C<getline>/C<parser_method> method doesn't work c
 
 default value is 0.
 
+=head3 no_open
+
+If this option is true, don't open file on creating Text::Parts::Part object.
+You need to call C<open_and_seek> method from the object when you read the file.
+
 =head2 file
 
  my $file = $s->file;
@@ -374,6 +392,7 @@ get/set paresr object.
  $s->parser_method($method);
 
 get/set paresr method.
+
 
 =head2 split
 
@@ -449,6 +468,12 @@ If current position is the end of parts, return true.
  $part->write_file($filename);
 
 Write the contents of the part to $filename.
+
+=head2 open_and_seek
+
+ $part->open_and_seek;
+
+If the object is created with no_open true, you need to call this method before reading file.
 
 =head1 AUTHOR
 

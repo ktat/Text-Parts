@@ -1,5 +1,9 @@
 Revision history for Text-Parts
 
+0.08	2011/12/21 12:55:00
+	improve write_files.
+	add no_open option for Text::Parts::Part constructor.
+
 0.07    2011/12/15 04:03:00
 	change write_files interface.
 	check argument(s) of write_file/write_files.
