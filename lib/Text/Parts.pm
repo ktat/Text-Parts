@@ -336,11 +336,11 @@ So that:
 
 Constructor. It can take following optins:
 
-=head2 num
+=head3 num
 
 number how many you want to split.
 
-=head2 size
+=head3 size
 
 file size how much you want to split.
 This value is used for calucurating C<num>.
