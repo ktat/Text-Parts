@@ -1,5 +1,10 @@
 Revision history for Text-Parts
 
+0.09	2012/02/22 14:37:00
+	no_open is not inherited to Text::Parts::Part object.
+        now, write_file checks no_open option.
+	write note about OS's open file limit.
+
 0.08	2011/12/21 12:55:00
 	improve write_files.
 	add no_open option for Text::Parts::Part constructor.

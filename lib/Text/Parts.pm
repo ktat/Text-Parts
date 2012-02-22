@@ -2,7 +2,8 @@ package Text::Parts;
 
 use warnings;
 use strict;
-use Carp;
+use Carp ();
+use Carp::Heavy ();
 use File::Spec ();
 
 sub new {
@@ -47,6 +48,7 @@ sub split {
   Carp::croak("num or size is required.") if not $opt{num} and not $opt{size};
 
   my $num = $opt{num} ? $opt{num} : int($self->_size / $opt{size});
+
   Carp::croak('num must be grater than 1.') if $num <= 1;
 
   my $file = $self->file;
@@ -68,7 +70,8 @@ sub split {
     seek $fh, $chunk_size - $delimiter_size, 1;
     $self->$getline_method($fh);
     my $end = tell($fh);
-    push @parts, Text::Parts::Part->new(%$self, start => $start, end => $end - 1, no_open => $opt{no_open});
+    my %args = (%$self, (exists $opt{no_open} ? (no_open => $opt{no_open}) : ()));
+    push @parts, Text::Parts::Part->new(%args, start => $start, end => $end - 1);
     $start = $end;
     if (($num > 1) and $chunk_size > $delimiter_size + 1) {
       $chunk_size = int(($file_size - $end) / $num);
@@ -173,26 +176,51 @@ sub new {
 
 sub open_and_seek {
   my ($self) = @_;
-  open my $fh, '<', $self->{file} or Carp::croak "$!: " . $self->{file};
+  open my $fh, '<', $self->{file} or Carp::croak("cannot read" . $self->{file} . ": $!");
   seek $fh, $self->{start}, 0;
   $self->{fh} = $fh;
+}
+
+sub is_opened {
+  my ($self) = @_;
+  return $self->{fh} ? 1 : 0;
+}
+
+sub close {
+  my ($self) = @_;
+  close $self->{fh};
+  undef $self->{fh};
+  $self->{_opend} = 0;
 }
 
 sub all {
   my ($self, $buf) = @_;
   my $buffer = '';
   my $_buf = $buf || \$buffer;
-  seek $self->fh, $self->{start}, 0 if $self->eof;
-  read $self->fh, $$_buf, $self->{end} - $self->{start};
+  if ($self->{no_open} and not $self->is_opened) {
+    $self->open_and_seek;
+    seek $self->fh, $self->{start}, 0 if $self->eof;
+    read $self->fh, $$_buf, $self->{end} - $self->{start};
+    $self->close;
+  } else {
+    seek $self->fh, $self->{start}, 0 if $self->eof;
+    read $self->fh, $$_buf, $self->{end} - $self->{start};
+  }
   return $buf ? () : $buffer;
 }
 
 sub write_file {
   my ($self, $name) = @_;
   $name or Carp::croak("file is needed.");
-  open my $fh, '>', $name or Carp::croak("cannot write $name: $!");
-  print $fh $self->all;
-  close $fh;
+  if ($self->{no_open} and not $self->is_opened) {
+    $self->open_and_seek;
+    open my $fh, '>', $name or Carp::croak("cannot write $name: $!");
+    print $fh $self->all;
+    $self->close;
+  } else {
+    open my $fh, '>', $name or Carp::croak("cannot write $name: $!");
+    print $fh $self->all;
+  }
 }
 
 sub getline {
@@ -223,7 +251,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 =head1 NAME
 
@@ -370,7 +398,10 @@ default value is 0.
 =head3 no_open
 
 If this option is true, don't open file on creating Text::Parts::Part object.
-You need to call C<open_and_seek> method from the object when you read the file.
+You need to call C<open_and_seek> method from the object when you read the file
+(But, C<all> and C<write_file> checks this option, so you don't need to call C<open_and_seek>).
+
+This option is required when you pass too much number, wihch is more than OS's open file limit, to split method.
 
 =head2 file
 
@@ -457,6 +488,9 @@ just C<read> from start to end position.
 
 If scalar reference is passed as argument, the content of the part is into the passed scalar.
 
+This method checks no_open option.
+If no_open is ture, open file before writing file and close file after writing.
+
 =head2 eof
 
  $part->eof;
@@ -469,11 +503,26 @@ If current position is the end of parts, return true.
 
 Write the contents of the part to $filename.
 
+This method checks no_open option.
+If no_open is ture, open file before writing file and close file after writing.
+
 =head2 open_and_seek
 
  $part->open_and_seek;
 
 If the object is created with no_open true, you need to call this method before reading file.
+
+=head2 close
+
+ $part->close;
+
+close file handle.
+
+=head2 is_opened
+
+ $part->is_opened;
+
+If file handle is opend, return true.
 
 =head1 AUTHOR
 
