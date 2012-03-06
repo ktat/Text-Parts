@@ -87,15 +87,15 @@ sub write_files {
   $filename or Carp::croak("file is needed as first argument.");
   my $code = ref $opt{code} eq 'CODE' ? delete $opt{code} : undef;
   my @filename;
-  my $n = 0;
   my @parts = $self->split(%opt, no_open => 1);
 
+  my $n = defined $opt{start_number} ? delete $opt{start_number} : 1;
   open my $fh, '<', $self->file or Carp::croak "cannot open file($!): " . $self->file;
   seek $fh, 0, 0;
   foreach my $part (@parts) {
     my $buf;
     read $fh, $buf, $part->{end} - $part->{start};
-    push @filename, sprintf $filename, ++$n;
+    push @filename, sprintf $filename, $n++;
     open my $fh_w, '>', $filename[-1] or Carp::croak("cannot open file($!): " . $filename[-1]);
     print $fh_w $buf;
     close $fh_w;
@@ -254,7 +254,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 =head1 NAME
 
@@ -450,7 +450,7 @@ get/set end of line string. default value is $/.
 
 =head2 write_files
 
- @filenames = $part->write_files('path/to/name%d.txt', num => 4);
+ @filenames = $s->write_files('path/to/name%d.txt', num => 4);
 
 C<name_format> is the format of filename. %d is replaced by number.
 For example:
@@ -460,12 +460,16 @@ For example:
  path/to/name3.txt
  path/to/name4.txt
 
-The rest of arguments are as same as C<split> except C<code> option.
+The rest of arguments are as same as C<split> except the following 2 options.
+
+=over 4
+
+=item code
 
 C<code> option takes code reference which would be done immediately after file had been written.
 If you pass C<code> option as the following:
 
- @filenames = $part->write_files('path/to/name%d.txt', num => 4, code => \&do_after_split)
+ @filenames = $s->write_files('path/to/name%d.txt', num => 4, code => \&do_after_split)
 
 splited file name is given to &do_after_split:
 
@@ -474,6 +478,30 @@ splited file name is given to &do_after_split:
     # ...
     unlink $filename;
  }
+
+=item start_number
+
+This is use for filename.
+
+if start_nubmer is 0.
+
+ path/to/name0.txt
+ path/to/name1.txt
+ ...
+
+if start_nubmer is 1 (default).
+
+ path/to/name1.txt
+ path/to/name2.txt
+ ...
+
+if start_nubmer is 2
+
+ path/to/name2.txt
+ path/to/name3.txt
+ ...
+
+=back
 
 =head1 Text::Parts::Part METHODS
 
