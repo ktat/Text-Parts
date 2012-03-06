@@ -85,6 +85,7 @@ sub split {
 sub write_files {
   my ($self, $filename, %opt) = @_;
   $filename or Carp::croak("file is needed as first argument.");
+  my $code = ref $opt{code} eq 'CODE' ? delete $opt{code} : undef;
   my @filename;
   my $n = 0;
   my @parts = $self->split(%opt, no_open => 1);
@@ -97,6 +98,8 @@ sub write_files {
     push @filename, sprintf $filename, ++$n;
     open my $fh_w, '>', $filename[-1] or Carp::croak("cannot open file($!): " . $filename[-1]);
     print $fh_w $buf;
+    close $fh_w;
+    $code and $code->($filename[-1]);
   }
   return @filename;
 }
@@ -251,7 +254,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 =head1 NAME
 
@@ -457,7 +460,20 @@ For example:
  path/to/name3.txt
  path/to/name4.txt
 
-The rest of arguments are as same as C<split>.
+The rest of arguments are as same as C<split> except C<code> option.
+
+C<code> option takes code reference which would be done immediately after file had been written.
+If you pass C<code> option as the following:
+
+ @filenames = $part->write_files('path/to/name%d.txt', num => 4, code => \&do_after_split)
+
+splited file name is given to &do_after_split:
+
+ sub do_after_split {
+    my $filename = shift; # 'path/to/name1.txt'
+    # ...
+    unlink $filename;
+ }
 
 =head1 Text::Parts::Part METHODS
 

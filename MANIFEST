@@ -23,6 +23,7 @@ t/20-check_line_start.t
 t/30-all.t
 t/40-write.t
 t/50-write-many.t
+t/60-write_files_with_code.t
 t/boilerplate.t
 t/data/1.txt
 t/data/2.txt

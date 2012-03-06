@@ -1,5 +1,8 @@
 Revision history for Text-Parts
 
+0.10	2012/03/06 17:50:00
+	add code option for write_files.
+
 0.09	2012/02/22 14:37:00
 	no_open is not inherited to Text::Parts::Part object.
         now, write_file checks no_open option.
