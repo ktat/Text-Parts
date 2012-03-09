@@ -11,6 +11,7 @@ build_requires
     ;
 test_requires
     'Test::Requires'  => 0,
+    'Digest::MD5'     => 0,
     ;
 
 resources

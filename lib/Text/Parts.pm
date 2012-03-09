@@ -16,7 +16,7 @@ sub new {
 
 sub eol {
   my $self = shift;
-  $self->{eol} = File::Spec->rel2abs(shift) if @_;
+  $self->{eol} = shift if @_;
   $self->{eol};
 }
 
@@ -57,6 +57,7 @@ sub split {
   my @parts;
   open my $fh, '<', $file or Carp::croak "$!: $file";
   local $/ = $self->{eol};
+  my $eol_len = length($self->{eol});
   my $delimiter_size = length($/);
   my $start = 0;
   seek $fh, 0, 0;
@@ -71,7 +72,7 @@ sub split {
     $self->$getline_method($fh);
     my $end = tell($fh);
     my %args = (%$self, (exists $opt{no_open} ? (no_open => $opt{no_open}) : ()));
-    push @parts, Text::Parts::Part->new(%args, start => $start, end => $end - 1);
+    push @parts, Text::Parts::Part->new(%args, start => $start, end => $end - $eol_len);
     $start = $end;
     if (($num > 1) and $chunk_size > $delimiter_size + 1) {
       $chunk_size = int(($file_size - $end) / $num);
@@ -89,14 +90,18 @@ sub write_files {
   my @filename;
   my @parts = $self->split(%opt, no_open => 1);
 
+  my $eol = $self->eol;
+
   my $n = defined $opt{start_number} ? delete $opt{start_number} : 1;
   open my $fh, '<', $self->file or Carp::croak "cannot open file($!): " . $self->file;
   seek $fh, 0, 0;
   foreach my $part (@parts) {
     my $buf;
-    read $fh, $buf, $part->{end} - $part->{start};
+    read $fh, $buf, $part->{end} - $part->{start} + length($eol);
+    $buf =~s{$eol\z}{}s;
     push @filename, sprintf $filename, $n++;
     open my $fh_w, '>', $filename[-1] or Carp::croak("cannot open file($!): " . $filename[-1]);
+    seek $fh_w, 0, 0;
     print $fh_w $buf;
     close $fh_w;
     $code and $code->($filename[-1]);
@@ -254,7 +259,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 =head1 NAME
 
@@ -329,7 +334,7 @@ Maybe, using fork makes sense when the file is on RAID (I haven't try it).
 
 =head1 DESCRIPTION
 
-This moudle splits file by specified number of part.
+This module splits file by specified number of part.
 The range of each part is from one line start to another/same line end.
 For example, file content is the following:
 
@@ -350,8 +355,8 @@ If C<< $splitter->split(num => 3) >>, split like the following:
 3rd part:
  4444
 
-At first, C<split> method trys to split by bytes of file size / 3,
-Secondly, trys to split by bytes of rest file size / the number of rest part.
+At first, C<split> method tries to split by bytes of file size / 3,
+Secondly, tries to split by bytes of rest file size / the number of rest part.
 So that:
 
  1st part : 36 bytes / 3 = 12 byte + bytes to line end(if needed)
@@ -365,7 +370,7 @@ So that:
  $s = Text::Parts->new(file => $filename);
  $s = Text::Parts->new(file => $filename, parser => Text::CSV_XS->new({binary => 1}));
 
-Constructor. It can take following optins:
+Constructor. It can take following options:
 
 =head3 num
 
@@ -374,7 +379,7 @@ number how many you want to split.
 =head3 size
 
 file size how much you want to split.
-This value is used for calucurating C<num>.
+This value is used for calculating C<num>.
 If file size is 100 and this value is 25, C<num> is 4.
 
 =head3 file
@@ -404,7 +409,7 @@ If this option is true, don't open file on creating Text::Parts::Part object.
 You need to call C<open_and_seek> method from the object when you read the file
 (But, C<all> and C<write_file> checks this option, so you don't need to call C<open_and_seek>).
 
-This option is required when you pass too much number, wihch is more than OS's open file limit, to split method.
+This option is required when you pass too much number, which is more than OS's open file limit, to split method.
 
 =head2 file
 
@@ -418,14 +423,14 @@ get/set target file.
  my $parser_object = $s->parser;
  $s->parser($parser_object);
 
-get/set paresr object.
+get/set parser object.
 
 =head2 parser_method
 
  my $method = $s->parser_method;
  $s->parser_method($method);
 
-get/set paresr method.
+get/set parser method.
 
 
 =head2 split
@@ -434,12 +439,12 @@ get/set paresr method.
  my @parts = $s->split(size => $size);
 
 Try to split target file to C<$num> of parts. The returned value is array of Text::Parts::Part object.
-If you pass C<< size => bytes >>, calcurate C<$num> from file size / C<$size>.
+If you pass C<< size => bytes >>, calculate C<$num> from file size / C<$size>.
 
 This returns array of Text::Parts::Part object.
 See L</"Text::Parts::Part METHODS">.
 
-This method doesn't actually split file, only calcurate the start and end poition of parts.
+This method doesn't actually split file, only calculate the start and end position of parts.
 
 =head2 eol
 
@@ -471,7 +476,7 @@ If you pass C<code> option as the following:
 
  @filenames = $s->write_files('path/to/name%d.txt', num => 4, code => \&do_after_split)
 
-splited file name is given to &do_after_split:
+splitted file name is given to &do_after_split:
 
  sub do_after_split {
     my $filename = shift; # 'path/to/name1.txt'
@@ -481,21 +486,24 @@ splited file name is given to &do_after_split:
 
 =item start_number
 
-This is use for filename.
+ @filenames = $s->write_files('path/to/name%d.txt', num => 4, start_number => 0);
+ # $filenames[0] is 'path/to/name0.txt'
 
-if start_nubmer is 0.
+This is used for filename.
+
+if start_number is 0.
 
  path/to/name0.txt
  path/to/name1.txt
  ...
 
-if start_nubmer is 1 (default).
+if start_number is 1 (default).
 
  path/to/name1.txt
  path/to/name2.txt
  ...
 
-if start_nubmer is 2
+if start_number is 2
 
  path/to/name2.txt
  path/to/name3.txt
@@ -533,7 +541,7 @@ just C<read> from start to end position.
 If scalar reference is passed as argument, the content of the part is into the passed scalar.
 
 This method checks no_open option.
-If no_open is ture, open file before writing file and close file after writing.
+If no_open is true, open file before writing file and close file after writing.
 
 =head2 eof
 
@@ -548,7 +556,7 @@ If current position is the end of parts, return true.
 Write the contents of the part to $filename.
 
 This method checks no_open option.
-If no_open is ture, open file before writing file and close file after writing.
+If no_open is true, open file before writing file and close file after writing.
 
 =head2 open_and_seek
 
@@ -566,7 +574,7 @@ close file handle.
 
  $part->is_opened;
 
-If file handle is opend, return true.
+If file handle is opened, return true.
 
 =head1 AUTHOR
 

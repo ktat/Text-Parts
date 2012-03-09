@@ -25,6 +25,7 @@ t/40-write.t
 t/50-write-many.t
 t/60-write_files_with_code.t
 t/70-write_files_start_number.t
+t/80-write-big.t
 t/boilerplate.t
 t/data/1.txt
 t/data/2.txt
