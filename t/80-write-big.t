@@ -9,7 +9,8 @@ BEGIN {
     use_ok( 'Text::Parts' ) || print "Bail out!";
 }
 
-my $eol = "\r\n";
+my $eol = $^O =~ m{MSWin} ? "\012" : "\015\012";
+$eol = "\015\012";
 my $eol_len = length($eol);
 open my $fh, '>', 't/data/2048.txt' or die $!;
 foreach my $i (1 .. 2048) {
@@ -22,10 +23,11 @@ my $s = Text::Parts->new(file => "t/data/2048.txt", no_open => 1);
 
 $s->eol($eol);
 my $i = 0;
+my $size = $^O =~m{MSWin} ? 101 : 100;
 foreach my $p ($s->split(num => 2048)) {
   $p->write_file("t/tmp/x" . ++$i . ".txt");
   my $file = "t/tmp/x" . $i . '.txt';
-  is -s $file, 100;
+  is -s $file, $size;
 }
 
 my @filenames = $s->write_files('t/tmp/xx%d.txt', num => 2048);
@@ -33,7 +35,7 @@ foreach my $file (@filenames) {
   my $_file = $file;
   $_file =~s{/xx}{/x};
   ok -s $_file, 'file exsists';
-  is Digest::MD5::md5_hex(_read_file($_file)), Digest::MD5::md5_hex(_read_file($file)), 'file checksum is same' or sleep 2;
+  is Digest::MD5::md5_hex(_read_file($_file)), Digest::MD5::md5_hex(_read_file($file)), 'file checksum is same';
   unlink $file;
   unlink $_file;
 }

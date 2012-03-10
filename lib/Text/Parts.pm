@@ -56,27 +56,26 @@ sub split {
   my $chunk_size = int $file_size / $num;
   my @parts;
   open my $fh, '<', $file or Carp::croak "$!: $file";
+  binmode($fh) if $^O =~m{MSWin};
   local $/ = $self->{eol};
-  my $eol_len = length($self->{eol});
-  my $delimiter_size = length($/);
+  my $eol_len = length($/);
   my $start = 0;
   seek $fh, 0, 0;
-  my $total;
   my $getline_method = $self->{parser} ? '_getline_parser' : '_getline';
   $getline_method .= '_restrict' if $self->{check_line_start};
   while ($num-- > 0) {
     $chunk_size = $file_size - $start if $start + $chunk_size > $file_size;
     last unless $chunk_size;
 
-    seek $fh, $chunk_size - $delimiter_size, 1;
+    seek $fh, $chunk_size - $eol_len, 1;
     $self->$getline_method($fh);
     my $end = tell($fh);
     my %args = (%$self, (exists $opt{no_open} ? (no_open => $opt{no_open}) : ()));
     push @parts, Text::Parts::Part->new(%args, start => $start, end => $end - $eol_len);
     $start = $end;
-    if (($num > 1) and $chunk_size > $delimiter_size + 1) {
+    if (($num > 1) and $chunk_size > $eol_len + 1) {
       $chunk_size = int(($file_size - $end) / $num);
-      $chunk_size = $delimiter_size + 1 if $chunk_size < $delimiter_size + 1;
+      $chunk_size = $eol_len + 1 if $chunk_size < $eol_len + 1;
     }
   }
   close $fh;
@@ -85,22 +84,25 @@ sub split {
 
 sub write_files {
   my ($self, $filename, %opt) = @_;
+  local $/ = $self->{eol};
+
   $filename or Carp::croak("file is needed as first argument.");
   my $code = ref $opt{code} eq 'CODE' ? delete $opt{code} : undef;
   my @filename;
   my @parts = $self->split(%opt, no_open => 1);
 
-  my $eol = $self->eol;
-
   my $n = defined $opt{start_number} ? delete $opt{start_number} : 1;
   open my $fh, '<', $self->file or Carp::croak "cannot open file($!): " . $self->file;
+  binmode($fh) if $^O =~m{MSWin};
   seek $fh, 0, 0;
+  my $eol_len = length($/);
   foreach my $part (@parts) {
     my $buf;
-    read $fh, $buf, $part->{end} - $part->{start} + length($eol);
-    $buf =~s{$eol\z}{}s;
+    read $fh, $buf, $part->{end} - $part->{start} + $eol_len;
+    $buf =~s{$/\z}{}s;
     push @filename, sprintf $filename, $n++;
     open my $fh_w, '>', $filename[-1] or Carp::croak("cannot open file($!): " . $filename[-1]);
+    binmode($fh_w) if $^O =~m{MSWin};
     seek $fh_w, 0, 0;
     print $fh_w $buf;
     close $fh_w;
@@ -138,7 +140,8 @@ sub _move_line_start {
   <$fh>;
   my $end     = tell $fh;
   my $size = $current - 1024 < 0 ? int($current / 2) : 1024;
-  my $eol = $self->eol;
+  my $eol = $self->{eol};
+  my $eol_len = length $self->{eol};
   my $check = 0;
   while ($end - $current + $size > 0 and $current - $size > 0) {
     seek $fh, $current - $size, 0;
@@ -146,7 +149,7 @@ sub _move_line_start {
     my @buffer = split /$eol/, $buffer;
     if (@buffer > 1) {
       $check = 1;
-      $current = $end - (length($buffer[-1]) + length($eol));
+      $current = $end - (length($buffer[-1]) + $eol_len);
       last;
     } else {
       $size += $size;
@@ -180,6 +183,11 @@ sub new {
     $self->open_and_seek;
   }
   $self;
+}
+
+sub eol {
+  my $self = shift;
+  $self->{eol};
 }
 
 sub open_and_seek {
@@ -223,10 +231,12 @@ sub write_file {
   if ($self->{no_open} and not $self->is_opened) {
     $self->open_and_seek;
     open my $fh, '>', $name or Carp::croak("cannot write $name: $!");
+    binmode($fh) if $^O =~m{MSWin};
     print $fh $self->all;
     $self->close;
   } else {
     open my $fh, '>', $name or Carp::croak("cannot write $name: $!");
+    binmode($fh) if $^O =~m{MSWin};
     print $fh $self->all;
   }
 }
@@ -235,7 +245,6 @@ sub getline {
   my ($self) = @_;
   return () if $self->eof;
 
-  local $/ = $self->{eol};
   my $fh = $self->{fh};
   return <$fh>;
 }
@@ -259,7 +268,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 =head1 NAME
 

@@ -1,5 +1,8 @@
 Revision history for Text-Parts
 
+0.13	2012/03/10 11:38
+	fix code for MSWin to pass all tests.
+
 0.12	2012/03/09 11:44
 	fix write_files, it was totally buggy.
 	fix eol. it was no use.
