@@ -47,7 +47,8 @@ sub split {
   my ($self, %opt) = @_;
   Carp::croak("num or size is required.") if not $opt{num} and not $opt{size};
 
-  my $num = $opt{num} ? $opt{num} : int($self->_size / $opt{size});
+  my $num     = $opt{num}     ? $opt{num} : int($self->_size / $opt{size});
+  my $max_num = $opt{max_num} ? $opt{max_num} : $num;
 
   Carp::croak('num must be grater than 1.') if $num <= 1;
 
@@ -63,7 +64,9 @@ sub split {
   seek $fh, 0, 0;
   my $getline_method = $self->{parser} ? '_getline_parser' : '_getline';
   $getline_method .= '_restrict' if $self->{check_line_start};
+  my $cnt = 1;
   while ($num-- > 0) {
+    last if $cnt++ > $max_num;
     $chunk_size = $file_size - $start if $start + $chunk_size > $file_size;
     last unless $chunk_size;
 
@@ -89,9 +92,10 @@ sub write_files {
   $filename or Carp::croak("file is needed as first argument.");
   my $code = ref $opt{code} eq 'CODE' ? delete $opt{code} : undef;
   my @filename;
-  my @parts = $self->split(%opt, no_open => 1);
-
   my $n = defined $opt{start_number} ? delete $opt{start_number} : 1;
+
+  my @parts = $self->split(%opt, no_open => 1, ($opt{max_number} ? (max_num => $opt{max_number} - $n + 1) : ()));
+
   open my $fh, '<', $self->file or Carp::croak "cannot open file($!): " . $self->file;
   binmode($fh) if $^O =~m{MSWin};
   seek $fh, 0, 0;
@@ -268,7 +272,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 =head1 NAME
 
@@ -276,7 +280,7 @@ Text::Parts - split text file to some parts(from one line start to another/same 
 
 =head1 SYNOPSIS
 
-If you want to split Text file to some number of parts:
+If you want to split a text file to some number of parts:
 
     use Text::Parts;
     
@@ -289,7 +293,7 @@ If you want to split Text file to some number of parts:
        }
     }
 
-If you want to split Text file by about specified size:
+If you want to split a text file by about specified size:
 
     use Text::Parts;
     
@@ -313,7 +317,7 @@ If you want to split CSV file:
        }
     }
 
-Write parts to file:
+Write splitted parts to files:
 
    $splitter->write_files('file%d.csv', num => 4);
    
@@ -446,14 +450,22 @@ get/set parser method.
 
  my @parts = $s->split(num => $num);
  my @parts = $s->split(size => $size);
+ my @parts = $s->split(num => $num, max_num => 3);
 
 Try to split target file to C<$num> of parts. The returned value is array of Text::Parts::Part object.
 If you pass C<< size => bytes >>, calculate C<$num> from file size / C<$size>.
 
+This method doesn't actually split file, only calculate the start and end position of parts.
+
 This returns array of Text::Parts::Part object.
 See L</"Text::Parts::Part METHODS">.
 
-This method doesn't actually split file, only calculate the start and end position of parts.
+If you set max_num, only split number of max_num.
+
+ my @parts = $s->split(num => 5, max_num => 2);
+
+This try to split 5 parts, but only 2 parts are returned.
+This is useful to try to test a few parts of too many parts.
 
 =head2 eol
 
@@ -517,6 +529,16 @@ if start_number is 2
  path/to/name2.txt
  path/to/name3.txt
  ...
+
+=item max_number
+
+If max_number is specified, stop to split file when number reaches max_number.
+Note that this option override max_num.
+
+ @filenames = $s->write_files('path/to/name%d.txt', num => 4, start_number => 0, max_number => 1);
+ # $filenames[0] is 'path/to/name0.txt'
+ # $filenames[1] is 'path/to/name1.txt'
+ # $filenames[2] doesn't exist
 
 =back
 

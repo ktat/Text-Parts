@@ -1,5 +1,9 @@
 Revision history for Text-Parts
 
+0.14	2012/04/24 02:50
+	add max_num option to split method.
+	add max_number option to write_files method.
+
 0.13	2012/03/10 11:38
 	fix code for MSWin to pass all tests.
 

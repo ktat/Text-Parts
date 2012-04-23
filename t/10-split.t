@@ -73,6 +73,27 @@ foreach my $check (0, 1) {
   }
 }
 
+for my $max_num (1, 2, 3){
+  my $n = 1;
+  my $split = shift @{$test{$n}};
+  my $s = Text::Parts->new(file => "t/data/$n.txt", check_line_start => 0);
+  my @split = $s->split(num => $split, max_num => $max_num);
+  is scalar @split, $max_num, "splitted to $max_num files";
+  my @data;
+  for (my $i = 0; $i < @split; $i++) {
+    my $f = $split[$i];
+    ok ! $f->eof, 'not eof';
+    $data[$i] ||= [];
+    while (my $l = $f->getline) {
+      chomp $l;
+      push @{$data[$i]}, $l,
+    }
+    ok $f->eof, 'eof';
+  }
+  is_deeply \@data, [@{$test{$n}}[0 .. ($max_num - 1)]], "$n.txt";
+  unshift @{$test{$n}}, $split;
+}
+
 # my $s = Text::Parts->new();
 # $s->file("t/data/1.txt");
 # my @split = $s->split(num => 4);
