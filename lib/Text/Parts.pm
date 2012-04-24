@@ -94,7 +94,7 @@ sub write_files {
   my @filename;
   my $n = defined $opt{start_number} ? delete $opt{start_number} : 1;
 
-  my @parts = $self->split(%opt, no_open => 1, ($opt{max_number} ? (max_num => $opt{max_number} - $n + 1) : ()));
+  my @parts = $self->split(%opt, no_open => 1, ($opt{last_number} ? (max_num => $opt{last_number} - $n + 1) : ()));
 
   open my $fh, '<', $self->file or Carp::croak "cannot open file($!): " . $self->file;
   binmode($fh) if $^O =~m{MSWin};
@@ -272,7 +272,7 @@ sub eof {
   $self->{end} <= tell($self->{fh}) ? 1 : 0;
 }
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 =head1 NAME
 
@@ -305,6 +305,7 @@ If you want to split CSV file:
 
     use Text::Parts;
     use Text::CSV_XS; # don't work with Text::CSV_PP if you want to use {binary => 1} option
+                      # I don't recommend to use it for CSV which has multiline lines in columns.
     
     my $csv = Text::CSV_XS->new();
     my $splitter = Text::Parts->new(file => $file, parser => $csv);
@@ -464,7 +465,7 @@ If you set max_num, only split number of max_num.
 
  my @parts = $s->split(num => 5, max_num => 2);
 
-This try to split 5 parts, but only 2 parts are returned.
+This trys to split 5 parts, but only 2 parts are returned.
 This is useful to try to test a few parts of too many parts.
 
 =head2 eol
@@ -530,12 +531,12 @@ if start_number is 2
  path/to/name3.txt
  ...
 
-=item max_number
+=item last_number
 
-If max_number is specified, stop to split file when number reaches max_number.
+If last_number is specified, stop to split file when number reaches last_number.
 Note that this option override max_num.
 
- @filenames = $s->write_files('path/to/name%d.txt', num => 4, start_number => 0, max_number => 1);
+ @filenames = $s->write_files('path/to/name%d.txt', num => 4, start_number => 0, last_number => 1);
  # $filenames[0] is 'path/to/name0.txt'
  # $filenames[1] is 'path/to/name1.txt'
  # $filenames[2] doesn't exist

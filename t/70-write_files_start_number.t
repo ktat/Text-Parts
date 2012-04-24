@@ -27,7 +27,7 @@ BEGIN {
   foreach my $i (0, 1, 2) {
     my $s = Text::Parts->new(file => 't/data/10.txt', no_open => 1);
     ok $s;
-    my @filenames = $s->write_files('t/tmp/xx%d.txt', num => 10, code => sub { ok unlink(shift) }, start_number => $i, max_number => 4);
+    my @filenames = $s->write_files('t/tmp/xx%d.txt', num => 10, code => sub { ok unlink(shift) }, start_number => $i, last_number => 4);
     is scalar @filenames, 4 - $i + 1;
     is $filenames[0]  , sprintf('t/tmp/xx%d.txt', $i), "start number is $i";
     is $filenames[-1] , sprintf('t/tmp/xx%d.txt', 4), "last number is " . 4;

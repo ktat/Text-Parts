@@ -1,5 +1,8 @@
 Revision history for Text-Parts
 
+0.15	2012/04/24 10:01
+	change method name. max_number -> last_number.
+
 0.14	2012/04/24 02:50
 	add max_num option to split method.
 	add max_number option to write_files method.
