@@ -15,12 +15,9 @@ test_requires
     ;
 
 resources
-  bugtracker => 'https://github.com/ktat/Text-Parts/issues',
-  repository => {
-      url  => 'https://github.com/ktat/Text-Parts.git',
-      web  => 'https://github.com/ktat/Text-Parts',
-      type => 'git',
-  };
+    bugtracker => 'https://github.com/ktat/Text-Parts/issues',
+    repository => 'https://github.com/ktat/Text-Parts',
+    ;
 
 auto_install;
 
