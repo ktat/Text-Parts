@@ -465,7 +465,7 @@ If you set max_num, only split number of max_num.
 
  my @parts = $s->split(num => 5, max_num => 2);
 
-This trys to split 5 parts, but only 2 parts are returned.
+This tries to split 5 parts, but only 2 parts are returned.
 This is useful to try to test a few parts of too many parts.
 
 =head2 eol
