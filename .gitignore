@@ -11,3 +11,10 @@ cover_db
 pod2htm*.tmp
 Text-Parts-*
 *~
+/Text-Parts-*
+/.build
+/_build_params
+/Build
+!Build/
+!META.json
+!LICENSE
