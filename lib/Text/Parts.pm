@@ -3,7 +3,6 @@ package Text::Parts;
 use warnings;
 use strict;
 use Carp ();
-use Carp::Heavy ();
 use File::Spec ();
 
 sub new {
