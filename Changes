@@ -2,7 +2,7 @@ Revision history for Text-Parts
 
 {{$NEXT}}
 
-0.16 2013-08-29T22:12:10Z
+0.16 2013-09-05T16:58:51Z
 	fix typo in pod.
 	use Minilla instead of Module::Install & ShipIt.
 
